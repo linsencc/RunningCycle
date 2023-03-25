@@ -1,5 +1,8 @@
 ## Runing Cycle
 
+![HTML](https://img.shields.io/badge/HTML-orange)
+![HTML](https://img.shields.io/badge/Javascript-9cf)
+
 A running cycle implemented using JavaScript:
 
 - It will keep running repeatedly.
