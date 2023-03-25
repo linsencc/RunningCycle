@@ -1,0 +1,184 @@
+<!doctype html>
+<html style="margin: 0; padding: 0; width: 100%; height: 100%;">
+	<head>
+		<meta charset="utf-8">
+		<title>wallpaper</title>
+	</head>
+	<body style="margin: 0; padding: 0; width: 100%; height: 100%;">
+		<div id="stage" style="position: absolute; position: relative; margin: 0; padding: 0; width: 100%; height: 100%;">
+			<canvas id="canvas" style="position: absolute; margin: 0; padding: 0; left: 0px; width: 100%; height: 100%; background-color: rgba(246,248,246,0.5);">
+				不支持画板对象
+			</canvas>
+		</div>
+		<script>
+			var canvas = document.getElementById('canvas');
+			var ctx = canvas.getContext('2d');
+			canvas.width = document.getElementById("stage").offsetWidth;
+			canvas.height = document.getElementById("stage").offsetHeight;
+
+			var groundPos = 0.7 * canvas.height;
+			var circleR = 100;
+			var circleInitH = groundPos - circleR;
+			var circleInitX = -circleR;
+			var mouseX = 0;
+			var mouseY = 0;
+
+			circle = {
+				r: circleR,
+				x: circleInitX,
+				y: circleInitH,
+				
+				moveRate : 1.5,
+				distCirToMouse: 1000,
+
+				angle: 0,
+				rotateRate: 0.01,
+				brinkPotX: 0,
+				brinkPotY: 0,
+				potTrace: [],
+
+				jump: false,
+				jumpLost: 0.6,
+				t: 0,
+				ta: 0.05,
+				th: 3,
+				tt: 3,
+
+				paintCircle: function() {
+					ctx.beginPath();
+					ctx.lineWidth = 3;
+					ctx.strokeStyle = "black";
+					ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+					ctx.stroke();
+				},
+
+				updateBrinkPot: function() {
+					this.brinkPotX = this.r * Math.cos(this.angle) + this.x;
+					this.brinkPotY = this.r * Math.sin(this.angle) + this.y;
+				},
+
+				paintLineToCenter: function() {
+					ctx.beginPath();
+					ctx.lineWidth = 5;
+					ctx.lineCap = "round";
+					ctx.strokeStyle = "black";
+					ctx.moveTo(this.x, this.y);
+					ctx.lineTo(this.brinkPotX, this.brinkPotY);
+					ctx.stroke();
+				},
+
+				updateNpaintTrace: function() {
+					this.potTrace[this.potTrace.length] = {
+						x: this.brinkPotX,
+						y: this.brinkPotY
+					};
+					ctx.beginPath();
+					ctx.lineWidth = 3;
+					ctx.lineCap = "round";
+					ctx.strokeStyle = "red";
+					ctx.moveTo(this.potTrace[0].x, this.potTrace[0].y);
+					for (var i = 1; i < this.potTrace.length; i++) {
+						ctx.lineTo(this.potTrace[i].x, this.potTrace[i].y);
+					}
+					ctx.stroke();
+				},
+
+				overRifhtReSet: function() {
+					if (this.x > canvas.width + this.r + 100) {
+						this.x = circleInitX;
+						this.potTrace.length = 0;
+					}
+				},
+
+				paintParamete: function(x, y) {
+					ctx.font = "20px 楷体";
+					ctx.fillText("x & y & r:   " + this.x.toFixed(2) + " : " + this.y.toFixed(2) + " : " + this.r.toFixed(2), x, y);
+					ctx.fillText("cir angel:   " + this.angle.toFixed(2), x, y += 25);
+					ctx.fillText("brinkPotX:   " + this.brinkPotX.toFixed(2), x, y += 25);
+					ctx.fillText("brinkPotY:   " + this.brinkPotY.toFixed(2), x, y += 25);
+				},
+
+				move: function() {
+					this.x += this.moveRate;
+					this.angle += this.rotateRate;
+					if (this.angle >= 2 * Math.PI) this.angle = 0;
+				},
+
+				setJumpOn: function(extent) {
+					this.tt = extent;
+					this.t = (this.tt) * -1;
+					this.jump = true;
+				},
+
+				lisenJump: function() {
+					if (this.jump) {
+						this.t += this.ta;
+						if (this.tt < 0){this.jump = false;}
+						if (this.t < 0){this.y -= this.t * this.t;}
+						if (this.t > 0 && this.y <= circleInitH){this.y += this.t * this.t;}
+						if (this.t >= this.tt && this.tt > 0 ) {
+							this.y = circleInitH;
+							this.setJumpOn(this.tt - this.jumpLost);
+						}
+					}
+				},
+				
+				lisenMouse: function(){
+					this.distCirToMouse = Math.sqrt((mouseX - this.x)*(mouseX - this.x) + (mouseY - this.y)*(mouseY - this.y));
+					if((this.distCirToMouse >= this.r && this.distCirToMouse <= this.r + 5) && mouseX > this.x){
+							this.moveRate = 0;
+							this.rotateRate = 0;
+					}else{
+						this.moveRate = 1.5;
+						this.rotateRate = 0.01;
+					}
+				}
+			}
+
+			function paintLine(groundPos) {
+				ctx.beginPath();
+				ctx.lineWidth = 3;
+				ctx.strokeStyle = "black";
+				ctx.lineCap = "round";
+				ctx.moveTo(0, groundPos);
+				ctx.lineTo(canvas.width, groundPos);
+				ctx.stroke();
+			}
+
+			canvas.onmousemove = function(e) {
+				mouseX = e.x;
+				mouseY = e.y;
+			}
+			
+			canvas.onclick = function(e){
+				if (!circle.jump)
+					circle.setJumpOn(circle.th);
+			}
+
+			window.onkeydown = function(e) {
+				if (e.keyCode == 32) {
+					if (!circle.jump)
+						circle.setJumpOn(circle.th);
+				}
+			}
+
+			window.onload = function() {
+				var interval = setInterval(function() {
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+					circle.move();
+					circle.lisenMouse();
+					circle.lisenJump();
+					circle.updateBrinkPot();
+					circle.paintCircle();
+					circle.paintLineToCenter();
+					circle.updateNpaintTrace();
+					circle.paintParamete(80, 30);
+					circle.overRifhtReSet();
+
+					paintLine(groundPos);
+				}, 10)
+			}
+		</script>
+	</body>
+</html>
